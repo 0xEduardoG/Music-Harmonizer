@@ -102,4 +102,8 @@ By integrating advanced machine learning techniques and user-centric design, our
 
 ├── NN_models.ipynb
 
+├── capstone_presentation.pdf
+
+├── functions_classes.py
+
 └── README.md
