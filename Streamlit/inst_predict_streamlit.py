@@ -1,3 +1,4 @@
+# Import necessary packages
 import streamlit as st
 import time
 import pandas as pd
@@ -13,9 +14,10 @@ from PIL import Image
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
-
+# Load and define model
 model = load_model('data/my_model.h5')
 
+# Define Function to take audio files and transform them into spectrograms
 def process_and_save_spectrograms(audio_file):
     
     n_fft = 2048
@@ -27,7 +29,7 @@ def process_and_save_spectrograms(audio_file):
         buffer = BytesIO()
         audio_segment.export(buffer, format="wav")
         buffer.seek(0)
-        # Load the m4a file data into librosa
+        
         audio_data, sampling_rate = librosa.load(buffer, sr=None)
     else:
         audio_data, sampling_rate = librosa.load(audio_file, sr=None)
@@ -65,6 +67,7 @@ def process_and_save_spectrograms(audio_file):
 
     return images
 
+#define function to preprocess spectrograms to feed them into the model
 def preprocess_image(img, target_size):
     # Resize image
     img = img.resize(target_size, Image.Resampling.LANCZOS)
@@ -84,6 +87,8 @@ def preprocess_image(img, target_size):
     img_array = np.expand_dims(img_array, axis=0)
     return img_array
 
+# Define function to make prediction
+
 def predict(model, image):
     # Preprocess the image
     img_array = preprocess_image(image, target_size=(224, 224))  # Use 'image' instead of 'img'
@@ -92,6 +97,7 @@ def predict(model, image):
     # Return the prediction
     return prediction
 
+#Define Function to decode the prediction
 def decode_prediction(pred):
     label_dict = {0:'Bass',
               1:'Brass',
@@ -105,13 +111,14 @@ def decode_prediction(pred):
               9:'Synth_lead',
               10:'Vocal'
              }
-    # Assuming pred is a softmax output, get the index with the highest probability
+    
     label_index = np.argmax(pred, axis=1)[0]
     # Map the index to a label
-    label = label_dict[label_index]  # You need to define label_dict based on your model's classes
+    label = label_dict[label_index]  
     return label
 
-background_color = "#635c54"  # Replace with your desired background color
+#Set background color
+background_color = "#635c54"  
 background_style = f"""
 <style>
     .stApp {{
@@ -129,6 +136,7 @@ def add_custom_css():
         </style>
         """, unsafe_allow_html=True)
 
+# Set up Title, images and markdown for the website
 st.markdown(background_style, unsafe_allow_html=True)
 st.title('Instrument Classification Model')
 st.image('images/instruments.png')
@@ -137,21 +145,24 @@ st.markdown('<h1 class="header">Upload File down here</h1>', unsafe_allow_html=T
 
 col1, col2 = st.columns([1.1,4])
 uploaded_files = col2.file_uploader('',type=['m4a','wav'])
-spectrogram = col1.checkbox('Spectrogram')
-prediction = col1.checkbox('Prediction')
-st.audio(uploaded_files)
-start_b = st.button('START')
+spectrogram = col1.toggle('Spectrogram')
+prediction = col1.toggle('Prediction')
+if uploaded_files is not None:
+    st.audio(uploaded_files)
+c1, c2, c3 = st.columns(3)
+start_b = c2.button('START')
 
 if start_b:
 
     if uploaded_files is not None:
         processed_file = process_and_save_spectrograms(uploaded_files)
-
+        colu1, colu2 = st.columns(2)
         if spectrogram:
             for img in processed_file:
-                st.image(processed_file, use_column_width=True)
+                colu2.header('Spectrogram:')
+                colu2.image(processed_file, use_column_width=True)
         if prediction:
             for img in processed_file:
                 pred = predict(model,img)
                 predicted_label = decode_prediction(pred)
-                st.text(f"the answer is {predicted_label}")
+                colu1.title(f"This instrument is a {predicted_label}")
